@@ -411,22 +411,6 @@ defmodule Bumblebee.Text.Qwen3 do
     def load(spec, data) do
       import Shared.Converters
 
-      scaling_strategy_converter = fn _name, value ->
-        case value do
-          %{"type" => "linear", "factor" => factor} when is_number(factor) ->
-            {:ok, %{type: :linear, factor: factor}}
-
-          %{"type" => "dynamic", "factor" => factor} when is_number(factor) ->
-            {:ok, %{type: :dynamic, factor: factor}}
-
-          nil ->
-            {:ok, nil}
-
-          _other ->
-            {:ok, nil}
-        end
-      end
-
       opts =
         convert!(data,
           vocab_size: {"vocab_size", number()},
@@ -441,7 +425,7 @@ defmodule Bumblebee.Text.Qwen3 do
           activation: {"hidden_act", activation()},
           rotary_embedding_base: {"rope_theta", number()},
           rotary_embedding_scaling_strategy:
-            {"rope_scaling", optional(scaling_strategy_converter)},
+            {"rope_scaling", optional(rotary_embedding_scaling_strategy())},
           initializer_scale: {"initializer_range", number()},
           layer_norm_epsilon: {"rms_norm_eps", number()}
         ) ++ Shared.common_options_from_transformers(data, spec)

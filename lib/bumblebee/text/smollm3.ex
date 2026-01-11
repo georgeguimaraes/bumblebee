@@ -488,45 +488,6 @@ defmodule Bumblebee.Text.SmolLM3 do
     def load(spec, data) do
       import Shared.Converters
 
-      scaling_strategy_converter = fn name, value ->
-        # "type" has been renamed to "rope_type"
-        value =
-          case Map.pop(value, "type") do
-            {nil, value} -> value
-            {type, value} -> Map.put(value, "rope_type", type)
-          end
-
-        case value do
-          %{"rope_type" => "linear", "factor" => factor} when is_number(factor) ->
-            {:ok, %{type: :linear, factor: factor}}
-
-          %{"rope_type" => "dynamic", "factor" => factor} when is_number(factor) ->
-            {:ok, %{type: :dynamic, factor: factor}}
-
-          %{
-            "rope_type" => "llama3",
-            "factor" => factor,
-            "low_freq_factor" => low_frequency_factor,
-            "high_freq_factor" => high_frequency_factor,
-            "original_max_position_embeddings" => original_max_positions
-          }
-          when is_number(factor) and is_number(low_frequency_factor) and
-                 is_number(high_frequency_factor) and
-                 is_number(original_max_positions) ->
-            {:ok,
-             %{
-               type: :llama3,
-               factor: factor,
-               low_frequency_factor: low_frequency_factor,
-               high_frequency_factor: high_frequency_factor,
-               original_max_positions: original_max_positions
-             }}
-
-          _other ->
-            {:error, "invalid format for #{inspect(name)}, got: #{inspect(value)}"}
-        end
-      end
-
       rotary_embedding_enabled_converter = fn name, value ->
         case value do
           no_rope_layers when is_list(no_rope_layers) ->
@@ -551,7 +512,7 @@ defmodule Bumblebee.Text.SmolLM3 do
           activation: {"hidden_act", activation()},
           rotary_embedding_base: {"rope_theta", number()},
           rotary_embedding_scaling_strategy:
-            {"rope_scaling", optional(scaling_strategy_converter)},
+            {"rope_scaling", optional(rotary_embedding_scaling_strategy())},
           rotary_embedding_enabled:
             {"no_rope_layers", optional(rotary_embedding_enabled_converter)},
           initializer_scale: {"initializer_range", number()},

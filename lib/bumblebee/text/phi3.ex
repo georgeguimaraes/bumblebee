@@ -426,27 +426,6 @@ defmodule Bumblebee.Text.Phi3 do
     def load(spec, data) do
       import Shared.Converters
 
-      scaling_strategy_converter = fn name, value ->
-        original_max_positions = data["original_max_position_embeddings"]
-
-        case value do
-          %{"type" => type, "long_factor" => long_factor, "short_factor" => short_factor}
-          when type in ["longrope", "su", "yarn"] and
-                 is_list(long_factor) and is_list(short_factor) and
-                 is_number(original_max_positions) ->
-            {:ok,
-             %{
-               type: :longrope,
-               long_factor: long_factor,
-               short_factor: short_factor,
-               original_max_positions: original_max_positions
-             }}
-
-          _other ->
-            {:error, "invalid format for #{inspect(name)}, got: #{inspect(value)}"}
-        end
-      end
-
       opts =
         convert!(data,
           vocab_size: {"vocab_size", number()},
@@ -461,7 +440,12 @@ defmodule Bumblebee.Text.Phi3 do
           rotary_embedding_percentage: {"partial_rotary_factor", number()},
           rotary_embedding_base: {"rope_theta", number()},
           rotary_embedding_scaling_strategy:
-            {"rope_scaling", optional(scaling_strategy_converter)},
+            {"rope_scaling",
+             optional(
+               rotary_embedding_scaling_strategy(
+                 original_max_positions: data["original_max_position_embeddings"]
+               )
+             )},
           initializer_scale: {"initializer_range", number()},
           layer_norm_epsilon: {"rms_norm_eps", number()}
         ) ++ Shared.common_options_from_transformers(data, spec)

@@ -549,19 +549,6 @@ defmodule Bumblebee.Text.Gemma3Text do
     def load(spec, data) do
       import Shared.Converters
 
-      scaling_strategy_converter = fn name, value ->
-        case value do
-          %{"type" => "linear", "factor" => factor} when is_number(factor) ->
-            {:ok, %{type: :linear, factor: factor}}
-
-          %{"type" => "dynamic", "factor" => factor} when is_number(factor) ->
-            {:ok, %{type: :dynamic, factor: factor}}
-
-          _other ->
-            {:error, "invalid format for #{inspect(name)}, got: #{inspect(value)}"}
-        end
-      end
-
       # Support sliding_window_pattern for backward compatibility
       # see https://github.com/huggingface/transformers/blob/v5.0.0rc1/src/transformers/models/gemma3/configuration_gemma3.py#L188-L195
       data =
@@ -594,7 +581,7 @@ defmodule Bumblebee.Text.Gemma3Text do
           rotary_embedding_base: {"rope_theta", number()},
           rotary_embedding_base_local: {"rope_local_base_freq", number()},
           rotary_embedding_scaling_strategy:
-            {"rope_scaling", optional(scaling_strategy_converter)},
+            {"rope_scaling", optional(rotary_embedding_scaling_strategy())},
           initializer_scale: {"initializer_range", number()},
           layer_norm_epsilon: {"rms_norm_eps", number()},
           attention_window_size: {"sliding_window", optional(number())},
